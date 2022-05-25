@@ -1,22 +1,5 @@
-# Node-RED Snap template
+# Tailored IoT application Template for ctrlX CORE
 
+## Why?
 
-## Modding
-
-Modify files "flows.json" and "settings.js" in scripts/conf to customize the node-red content. Nodes to be preinstalled could be placed in the snapcraft.yaml file.
-
-## Building - native ubuntu
-
-    sudo chmod 777 -R *
-    sudo snap install multipass
-    sudo snap install snapcraft --classic
-    snapcraft
-    
-
-## Building - VM
-   
-    sudo chmod 777 -R *
-    sudo snap install lxd
-    sudo lxd init -> confirm all defaults
-    snapcraft --use-lxd
-    
+The idea is to create a "Template" contining all the main IoT tools for industrial purposes that the use may want to use. All the apps have their own configuration files exposed. 
