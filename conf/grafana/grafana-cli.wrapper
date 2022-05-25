@@ -1,0 +1,6 @@
+#!/bin/sh
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+export LD_LIBRARY_PATH=$SNAP_LIBRARY_PATH:$LD_LIBRARY_PATH
+export GF_PLUGIN_DIR=$SNAP_COMMON/data/plugins
+
+exec "$SNAP/usr/sbin/grafana-cli" "$@"

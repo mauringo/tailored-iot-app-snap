@@ -1,0 +1,250 @@
+name: tailored-iot-app
+adopt-info: node-red
+summary: Low-code programming for event-driven applications
+description: |
+        Node-RED is a flow based programming application for wiring together hardware devices, APIs and online services in new and interesting ways. For more information see http://nodered.org 
+        
+        ### Modifications
+        
+        Listens on port 1881 and runs as as service in strict mode by default.
+        Fully configurable on port 1882: edit **settings.js** directly from a webpage!
+
+        The snap by default comes with the following packages installed
+        node-red dashboard
+        CtrlX-Automation-Contrib
+        OPCUA contrib
+        MongoDB3
+        Influxdb 
+
+confinement: strict
+grade: stable
+base: core20
+
+# Limit architectures as ppcel64 doesn't build currently
+architectures:
+  - build-on: arm64
+  - build-on: amd64
+
+apps:
+
+    
+  influxd:
+        command: bin/influx/runinfluxd.wrapper
+        daemon: simple
+        plugs: [network, network-bind]
+        restart-condition: always
+        environment:
+          INFLUXDB_META_DIR: $SNAP_COMMON/meta
+          INFLUXDB_DATA_DIR: $SNAP_COMMON/data
+          INFLUXDB_DATA_WAL_DIR: $SNAP_COMMON/wal
+          INFLUXDB_CONFIG_PATH: $SNAP_COMMON/influx/influxdb.conf
+          INFLUXD_BOLT_PATH: $SNAP_COMMON/influxdbv2/influxd.bolt
+          INFLUXD_ENGINE_PATH: $SNAP_COMMON/influxdbv2/engine
+    
+  mongod:
+        command: bin/mongo/run.wrapper
+        daemon: simple
+        plugs: [network, network-bind, mount-observe, network-observe, system-observe, bluetooth-control]
+        restart-condition: on-failure
+
+  jupyter:
+     command: bin/jupyterw/jupyter.wrapper
+     daemon: simple
+     plugs:
+       - network-bind
+       - network-status
+       - network-observe
+       - serial-port
+     environment:
+         "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/python3/dist-packages"
+      
+
+  grafana:
+    command: 'bin/grafana/grafana.wrapper'
+    plugs: [network-bind, network]
+    daemon: simple
+
+  grafana-cli:
+    command: 'bin/grafana/grafana-cli.wrapper'
+    plugs: [network-bind, network]
+
+  node-red:
+    command: bin/nodered/startNR
+    daemon: simple
+    restart-condition: on-failure
+    plugs:
+      - audio-playback
+      - bluez
+      - bluetooth-control
+      - camera
+      - gpio
+      - home
+      - network-bind
+      - network
+      - network-observe
+      - pulseaudio
+      - removable-media
+      - serial-port
+      
+
+  
+      
+  npm:
+    command: bin/npm
+    plugs:
+      - home
+      - network
+  desktop-launch:
+    command: bin/desktop-launch
+    plugs:
+      - desktop
+      
+slots:
+  package-assets:
+    content: package-assets
+    interface: content
+    source:
+      read:
+      - $SNAP/bin/package-assets/tailored-iot-app
+      
+parts:
+
+  
+  grafana:
+    plugin: dump
+    source:
+         - on amd64: https://dl.grafana.com/oss/release/grafana_8.5.1_amd64.deb
+         - on arm64: https://dl.grafana.com/oss/release/grafana_8.5.1_arm64.deb
+    stage-packages: [libfontconfig1, libfreetype6]
+
+
+
+
+  node: # We dump in a specific version of node/npm from upstream.
+    plugin: dump
+    source: 
+      - on amd64: https://nodejs.org/dist/v14.15.4/node-v14.15.4-linux-x64.tar.gz
+      - on arm64: https://nodejs.org/dist/v14.15.4/node-v14.15.4-linux-arm64.tar.gz
+     
+ 
+    
+  influxdb-mongodb:
+        plugin: dump
+        source:
+         - on amd64: https://dl.influxdata.com/influxdb/releases/influxdb_1.8.3_amd64.deb
+         - on arm64: https://dl.influxdata.com/influxdb/releases/influxdb_1.8.3_arm64.deb
+        stage-packages:
+            - mongodb-server
+            - mongodb-server-core
+           
+  node-red:
+    after: [node]
+    plugin: nil # We use the nil plugin so we can fully override the build with whatever we need to do
+    source: .
+    stage-packages:
+      - python
+    override-build: | # Whatever steps needed to install node-red into the install folder, which gets incorporated into the snap
+      PATH=$PATH:../npm/bin
+      apt-get install libatomic1
+      npm config set unsafe-perm True
+      # npm install --prefix $SNAPCRAFT_PART_INSTALL/lib
+      npm install --no-audit --no-fund --prefix $SNAPCRAFT_PART_INSTALL/lib node-red node-red-node-ping node-red-node-base64 node-red-node-random node-red-node-rbe node-red-node-serialport node-red-dashboard node-red-contrib-opcua node-red-contrib-influxdb node-red-contrib-mongodb3 node-red-contrib-ctrlx-automation node-red-contrib-s7 node-red-contrib-cip-ethernet-ip node-red-contrib-modbus node-red-contrib-opcda-client
+      find $SNAPCRAFT_PART_INSTALL -type f -name '*.js.swp' -delete
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name test -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name doc -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name example -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name sample -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -iname benchmark* -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -iname .nyc_output -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -iname unpacked -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name man* -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -name tst -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type d -iname demo -prune -exec rm -rf {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -name bench.gnu -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -name .npmignore -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -name .travis.yml -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -name .jshintrc -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname README.md -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname HISTORY.md -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname CONTRIBUTING.md -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname CHANGE*.md -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname .gitmodules -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname .gitattributes -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname .gitignore -exec rm -f {} \;
+      find $SNAPCRAFT_PART_INSTALL/lib/node_modules -type f -iname "*~" -exec rm -f {} \;
+      VER=$(npm show node-red version)
+      echo "VERSION $(npm show node-red version)"
+      snapcraftctl set-version $VER
+
+
+  python3-libs:
+    plugin: python
+    build-environment:
+      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
+
+    stage-packages:
+      - libzbar0
+      - libssl-dev
+      - libcurl-dev
+      - libssl1.1
+      - libcurl3-dev
+      - libcurl4-openssl-dev    
+      - libzbar-dev
+      - libfreetype6-dev
+      - wget
+      - git
+      - pkg-config
+      - libpng-dev
+      - python3-opencv
+      - python3-grpcio
+      - unzip
+      - python3-wheel
+      
+    python-packages:
+      - wheel
+      - requests
+      - pillow
+      - flask
+      - pymongo
+      - gitpython
+      - appdirs
+      - influxdb
+      - imutils 
+      - werkzeug
+      - bokeh
+      - jupyterlab
+      - jupyterlab-git
+      - jupyterlab-system-monitor
+      - jupyterlab-zip
+      - numpy
+      - six
+      - python-socketio[client]
+      - scikit-learn
+      - scipy
+      - opencv-python
+      - schedule 
+      - pandas
+      - matplotlib
+
+    build-packages:
+      - python3-dev
+      - python3-wheel
+      - build-essential
+      - python3-setuptools
+      - libzbar0
+      - libzbar-dev
+
+
+  grafana-conf:
+    plugin: dump
+    source: conf/grafana
+    organize:
+      grafana.ini: usr/share/grafana/conf/grafana.ini
+
+      
+  scripts:
+    plugin: dump
+    source: conf # snapcraft now prefers local parts to be in snap/local
+    organize:
+      '*': "bin/"
+     

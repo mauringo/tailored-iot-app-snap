@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+if [ -z "$PORT" ]; then PORT=2277; fi
+export PORT
+if [ ! -f $SNAP_COMMON/hello.conf ]; then
+    touch $SNAP_COMMON/hello.conf
+    echo "NEW - Copy settings.js to "$SNAP_COMMON
+    cp $SNAP/bin/nodered/settings.js $SNAP_COMMON/
+    cp $SNAP/bin/nodered/flows.json $SNAP_COMMON/
+fi
+echo NOW STARTING NODE-RED : $SNAP/bin/node-red -u $SNAP_COMMON on port $PORT
+"$SNAP"/bin/node "$SNAP"/lib/node_modules/.bin/node-red -u "$SNAP_COMMON" "$SNAP_COMMON/flows.json"
