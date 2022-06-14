@@ -24,7 +24,7 @@ Build:
     snapcraft 
 
 
-### arm64
+### arm64 (on a native arm64 device)
 
 Install snapcraft:
 
@@ -41,3 +41,15 @@ Initialize LXD:
 Build:
 
     snapcraft --use-lxd
+    
+### Remote-Build (both platforms but remotely and publicly available)
+
+Install snapcraft:
+
+    sudo snap install snapcraft
+    
+
+Build:
+
+    snapcraft remote-biuld
+
