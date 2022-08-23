@@ -2,7 +2,7 @@
 
 ## Why?
 
-The idea is to create a "Template" contining all the main IoT tools for industrial purposes that the use may want to use. All the apps have their own configuration files exposed. 
+The idea is to create a "Template" containing all the main IoT tools for industrial purposes that the use may want to use. All the apps have their own configuration files exposed. 
 
 
 ## Building 
@@ -32,7 +32,7 @@ Install snapcraft:
     
 Install LXD:
 
-    sudo snap install multipass
+    sudo snap install lxd
     
 Initialize LXD:
 
